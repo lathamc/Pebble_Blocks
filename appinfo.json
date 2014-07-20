@@ -1,0 +1,31 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "latham.caseys@gmail.com",
+    "longName": "Blocks",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "fonts/Abadi MT Condensed Light.ttf",
+                "name": "ABADI_CONDENSED_24",
+                "type": "font"
+            },
+            {
+                "characterRegex": "[0-9]",
+                "file": "fonts/ARIALNB.TTF",
+                "name": "ARIAL_NARROW_BOLD_69",
+                "type": "font"
+            }
+        ]
+    },
+    "shortName": "Blocks",
+    "uuid": "17e7a5f2-b5e2-4d93-9b23-5abb5232eefd",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": true
+    }
+}
