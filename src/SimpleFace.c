@@ -115,8 +115,8 @@ void handle_init(void) {
   /* Call the function to update time upon starting the watchface */
   time_t now = time(NULL);
   
-  handle_timechanges(localtime(&now), MINUTE_UNIT);
-  handle_hourchanges(localtime(&now), HOUR_UNIT);
+  handle_timechanges(localtime(&now), MINUTE_UNIT | HOUR_UNIT);
+  //handle_hourchanges(localtime(&now), HOUR_UNIT);
   
   /* Every minute, calls the handle_timechanges function */
   tick_timer_service_subscribe(MINUTE_UNIT, handle_timechanges);  
