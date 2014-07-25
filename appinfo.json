@@ -9,12 +9,17 @@
     "resources": {
         "media": [
             {
+                "file": "images/warning.png",
+                "name": "WARNING_SIGN",
+                "type": "png-trans"
+            },
+            {
                 "file": "fonts/Abadi MT Condensed Light.ttf",
-                "name": "ABADI_CONDENSED_24",
+                "name": "ABADI_CONDENSED_20",
                 "type": "font"
             },
             {
-                "characterRegex": "[0-9]",
+                "characterRegex": "[0-9 ]",
                 "file": "fonts/ARIALNB.TTF",
                 "name": "ARIAL_NARROW_BOLD_69",
                 "type": "font"

@@ -8,18 +8,42 @@ TextLayer *am_layer;
 TextLayer *date_layer;
 TextLayer *battery_layer;
 
+GBitmap *bt_white_image;
+GBitmap *bt_black_image;
+BitmapLayer *bt_white_image_layer;
+BitmapLayer *bt_black_image_layer;
+
 /* Checks user settings regarding 12/24 hour time */
 bool clock_is_24h_style(void);
 
+/* Function to get the bluetooth status whenever called */
+void update_bluetooth_state(bool connected){
+  if (connected == 0){
+    //IMAGE LAYERS
+    /* Uses GCompOpOr to display white portions of image */
+    bt_white_image_layer = bitmap_layer_create(GRect(82, 28, 62, 36)); //Matches am_layer, removes text buffer of 4 px
+    bitmap_layer_set_bitmap(bt_white_image_layer, bt_white_image);
+    bitmap_layer_set_alignment(bt_white_image_layer, GAlignCenter);
+    bitmap_layer_set_background_color(bt_white_image_layer, GColorBlack);
+    bitmap_layer_set_compositing_mode(bt_white_image_layer, GCompOpOr);
+  
+    layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bt_white_image_layer));
+  }
+  else{
+    /* When the Bluetooth turns on, the Bitmap layer is destroyed */
+    bitmap_layer_destroy(bt_white_image_layer);
+  }
+}
+
 /* Function to get the battery state whenever called */
-static void update_battery_state(BatteryChargeState charge_state)
-{
+void update_battery_state(BatteryChargeState charge_state){
   double battery_percent = charge_state.charge_percent * 0.01; //Returns the battery level as a percentage
   layer_set_frame(text_layer_get_layer(battery_layer), GRect(0, 167, (int)(battery_percent * 144), 1)); //Resizes the battery layer
 }
+
 void handle_hourchanges(struct tm *tick_time, TimeUnits units_changed){
   /* Updates them hour and am/pm because the layers are on the same horizontal plane */
-  static char hour_buffer[6];
+  static char hour_buffer[4];
   static char am_buffer[4];
   
   /* If the user set time to 24 hour style, then returns the 24 hour time (00, 01, ... 24).  If user set time to 12 hour style,
@@ -41,14 +65,12 @@ the full screen is updated. */
 void handle_timechanges(struct tm *tick_time, TimeUnits units_changed) {
   /* Updates the minute and date because the layers are on the same horizontal plane */
   static char min_buffer[6];
-  static char date_buffer[10];
+  static char date_buffer[12]; //was 20
   
   strftime(min_buffer, sizeof(min_buffer), "%M", tick_time);
   text_layer_set_text(min_layer, min_buffer);
-  strftime(date_buffer, sizeof(date_buffer), "%a\n%b %e", tick_time);
+  strftime(date_buffer, sizeof(date_buffer), "%a\n%b %e", tick_time);//a
   text_layer_set_text(date_layer, date_buffer);
-  
-  update_battery_state(battery_state_service_peek());
   
   if(units_changed & HOUR_UNIT)
   {
@@ -65,7 +87,11 @@ void handle_init(void) {
   GFont abadi_62 = 
     fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ARIAL_NARROW_BOLD_69));
   GFont abadi_24 =
-    fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ABADI_CONDENSED_24));
+    fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ABADI_CONDENSED_20));
+  
+  /* Sets the transparent image as a resource. */
+  bt_white_image = gbitmap_create_with_resource(RESOURCE_ID_WARNING_SIGN_WHITE);
+  bt_black_image = gbitmap_create_with_resource(RESOURCE_ID_WARNING_SIGN_BLACK);
   
   //HOUR LAYER
   hour_layer = text_layer_create(GRect(0,0, 82, 84));
@@ -86,7 +112,7 @@ void handle_init(void) {
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(min_layer));
   
   //AM PM LAYER
-  am_layer = text_layer_create(GRect(82, 29, 52, 36));
+  am_layer = text_layer_create(GRect(82, 32, 62, 36));
   text_layer_set_font(am_layer, abadi_24);
   text_layer_set_text_alignment(am_layer, GTextAlignmentCenter);
   text_layer_set_background_color(am_layer, GColorBlack);
@@ -95,7 +121,7 @@ void handle_init(void) {
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(am_layer));
   
   //DATE LAYER
-  date_layer = text_layer_create(GRect(0, 96, 64, 84));  //Manually centered vertically
+  date_layer = text_layer_create(GRect(0, 102, 64, 84));  //Manually centered vertically
   text_layer_set_font(date_layer, abadi_24);
   text_layer_set_text_alignment(date_layer, GTextAlignmentCenter);
   text_layer_set_background_color(date_layer, GColorBlack);
@@ -103,10 +129,22 @@ void handle_init(void) {
   
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(date_layer));
   
+  //BATTERY PERCENTAGE LAYER
   battery_layer = text_layer_create(GRect(0, 0, 0, 0)); //Creates the battery layer
-  
   text_layer_set_background_color(battery_layer, GColorWhite);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(battery_layer));
+  
+  /* Uses GCompOpOr to display black portions of image */
+  /*
+  bt_black_image_layer = bitmap_layer_create(GRect(82, 32, 62, 36)); //Matches am_layer
+  bitmap_layer_set_bitmap(bt_black_image_layer, bt_white_image);
+  bitmap_layer_set_alignment(bt_black_image_layer, GAlignCenter);
+  bitmap_layer_set_compositing_mode(bt_black_image_layer, GCompOpOr);
+  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bt_black_image_layer));
+  */
+  
+  update_bluetooth_state(bluetooth_connection_service_peek());
+  bluetooth_connection_service_subscribe(update_bluetooth_state);
   
   update_battery_state(battery_state_service_peek()); 
   battery_state_service_subscribe(update_battery_state);
@@ -130,6 +168,12 @@ void handle_deinit(void) {
   text_layer_destroy(am_layer);
   text_layer_destroy(date_layer);
   text_layer_destroy(battery_layer);
+  
+  bitmap_layer_destroy(bt_white_image_layer);
+  bitmap_layer_destroy(bt_black_image_layer);
+  
+  gbitmap_destroy(bt_white_image);
+  gbitmap_destroy(bt_black_image);
   
   window_destroy(window);
 }
