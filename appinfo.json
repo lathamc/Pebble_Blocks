@@ -1,7 +1,11 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "KEY_BATTERY": 0,
+        "KEY_BLUETOOTH": 0,
+        "KEY_ZERO": 0
+    },
     "capabilities": [
-        ""
+        "configurable"
     ],
     "companyName": "latham.caseys@gmail.com",
     "longName": "Blocks",

@@ -1,6 +1,10 @@
 #include <pebble.h>
 #include "SimpleFace.h"
 
+#define KEY_ZERO 1
+#define KEY_BATTERY 1
+#define KEY_BLUETOOTH 1
+
 Window *window;
 TextLayer *hour_layer;
 TextLayer *min_layer;
@@ -9,9 +13,9 @@ TextLayer *date_layer;
 TextLayer *battery_layer;
 
 GBitmap *bt_white_image;
-GBitmap *bt_black_image;
+//GBitmap *bt_black_image;
 BitmapLayer *bt_white_image_layer;
-BitmapLayer *bt_black_image_layer;
+//BitmapLayer *bt_black_image_layer;
 
 /* Checks user settings regarding 12/24 hour time */
 bool clock_is_24h_style(void);
@@ -19,19 +23,12 @@ bool clock_is_24h_style(void);
 /* Function to get the bluetooth status whenever called */
 void update_bluetooth_state(bool connected){
   if (connected == 0){
-    //IMAGE LAYERS
-    /* Uses GCompOpOr to display white portions of image */
-    bt_white_image_layer = bitmap_layer_create(GRect(82, 28, 62, 36)); //Matches am_layer, removes text buffer of 4 px
-    bitmap_layer_set_bitmap(bt_white_image_layer, bt_white_image);
-    bitmap_layer_set_alignment(bt_white_image_layer, GAlignCenter);
-    bitmap_layer_set_background_color(bt_white_image_layer, GColorBlack);
-    bitmap_layer_set_compositing_mode(bt_white_image_layer, GCompOpOr);
-  
-    layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bt_white_image_layer));
+    /* If Bluetooth is connected, the image layer is hidden */
+    layer_set_hidden(bitmap_layer_get_layer(bt_white_image_layer), 0);
   }
   else{
-    /* When the Bluetooth turns on, the Bitmap layer is destroyed */
-    bitmap_layer_destroy(bt_white_image_layer);
+    /* If Bluetooth is not connected, the image layer is shown */
+    layer_set_hidden(bitmap_layer_get_layer(bt_white_image_layer), 1);
   }
 }
 
@@ -78,10 +75,75 @@ void handle_timechanges(struct tm *tick_time, TimeUnits units_changed) {
   }
 }
 
+static void in_recv_handler(DictionaryIterator *iterator, void *context)
+{
+  //Get Tuple
+  Tuple *t = dict_read_first(iterator);
+  Tuple *t2 = dict_read_next(iterator);
+  Tuple *t3 = dict_read_next(iterator);
+  if(t)
+  {
+    switch(t->key)
+    {
+    case KEY_ZERO:
+      //It's the KEY_ZERO key
+      if(strcmp(t->value->cstring, "on") == 0)
+      {
+        persist_write_bool(KEY_ZERO, true);
+      }
+      else if(strcmp(t->value->cstring, "off") == 0)
+      {
+        persist_write_bool(KEY_ZERO, false);
+      }
+      break;
+    }
+  }
+  
+  if(t2)
+  {
+    switch(t2->key)
+    {
+      case KEY_BATTERY:
+        if(strcmp(t2->value->cstring, "on") == 0)
+        {
+          persist_write_bool(KEY_BATTERY, true);
+        }
+        else if(strcmp(t2->value->cstring, "off") == 0)
+        {
+          persist_write_bool(KEY_BATTERY, false);
+        }
+        break;
+    }
+  }
+  if(t3)
+  {
+    switch(t3->key)
+    {
+      case KEY_BLUETOOTH:
+        if(strcmp(t3->value->cstring, "on") == 0)
+        {
+          persist_write_bool(KEY_BLUETOOTH, true);
+        }
+        else if(strcmp(t3->value->cstring, "off") == 0)
+        {
+          persist_write_bool(KEY_BLUETOOTH, false);
+        }
+        break;
+    }
+  } 
+}
+
 /* Initializes the watchface */
 void handle_init(void) {
   window = window_create();
   window_set_background_color(window, GColorBlack);
+  
+  app_message_register_inbox_received((AppMessageInboxReceived) in_recv_handler);
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+  
+  bool user_zero = persist_read_bool(KEY_ZERO);
+  bool user_battery = persist_read_bool(KEY_BATTERY);
+  bool user_bluetooth = persist_read_bool(KEY_BLUETOOTH);
   
   /* Sets the custom fonts as resources. */
   GFont abadi_62 = 
@@ -91,7 +153,7 @@ void handle_init(void) {
   
   /* Sets the transparent image as a resource. */
   bt_white_image = gbitmap_create_with_resource(RESOURCE_ID_WARNING_SIGN_WHITE);
-  bt_black_image = gbitmap_create_with_resource(RESOURCE_ID_WARNING_SIGN_BLACK);
+//  bt_black_image = gbitmap_create_with_resource(RESOURCE_ID_WARNING_SIGN_BLACK);
   
   //HOUR LAYER
   hour_layer = text_layer_create(GRect(0,0, 82, 84));
@@ -134,6 +196,16 @@ void handle_init(void) {
   text_layer_set_background_color(battery_layer, GColorWhite);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(battery_layer));
   
+  //IMAGE LAYERS
+  /* Uses GCompOpOr to display white portions of image */
+  bt_white_image_layer = bitmap_layer_create(GRect(82, 28, 62, 36)); //Matches am_layer, removes text buffer of 4 px
+  bitmap_layer_set_bitmap(bt_white_image_layer, bt_white_image);
+  bitmap_layer_set_alignment(bt_white_image_layer, GAlignCenter);
+  bitmap_layer_set_background_color(bt_white_image_layer, GColorBlack);
+  bitmap_layer_set_compositing_mode(bt_white_image_layer, GCompOpOr);
+  
+  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bt_white_image_layer));
+  
   /* Uses GCompOpOr to display black portions of image */
   /*
   bt_black_image_layer = bitmap_layer_create(GRect(82, 32, 62, 36)); //Matches am_layer
@@ -143,11 +215,15 @@ void handle_init(void) {
   layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bt_black_image_layer));
   */
   
+  if(user_bluetooth == true){
   update_bluetooth_state(bluetooth_connection_service_peek());
   bluetooth_connection_service_subscribe(update_bluetooth_state);
+  }
   
+  if(user_battery == true){
   update_battery_state(battery_state_service_peek()); 
   battery_state_service_subscribe(update_battery_state);
+  }
   
   //TIME CHANGES
   /* Call the function to update time upon starting the watchface */
@@ -170,10 +246,10 @@ void handle_deinit(void) {
   text_layer_destroy(battery_layer);
   
   bitmap_layer_destroy(bt_white_image_layer);
-  bitmap_layer_destroy(bt_black_image_layer);
+//  bitmap_layer_destroy(bt_black_image_layer);
   
   gbitmap_destroy(bt_white_image);
-  gbitmap_destroy(bt_black_image);
+//  gbitmap_destroy(bt_black_image);
   
   window_destroy(window);
 }
