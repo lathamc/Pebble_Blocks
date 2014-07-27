@@ -1,9 +1,10 @@
 #include <pebble.h>
 #include "SimpleFace.h"
 
-#define KEY_ZERO 1
-#define KEY_BATTERY 1
-#define KEY_BLUETOOTH 1
+static AppSync sync;
+static uint8_t sync_buffer[64];
+
+#define SETTINGS_KEY 99
 
 Window *window;
 TextLayer *hour_layer;
@@ -16,6 +17,26 @@ GBitmap *bt_white_image;
 //GBitmap *bt_black_image;
 BitmapLayer *bt_white_image_layer;
 //BitmapLayer *bt_black_image_layer;
+
+typedef struct persist{
+  int showZero;
+  int bluetoothWarning;
+  int batteryBar;
+} __attribute__((__packed__)) persist;
+
+persist settings = {
+  .showZero = 1,
+  .bluetoothWarning = 1,
+  .batteryBar = 1
+};
+
+enum{
+  ZERO_KEY = 0x0,
+  BATTERY_BAR_KEY = 0x1,
+  BLUETOOTH_WARNING_KEY = 0x2
+};
+
+
 
 /* Checks user settings regarding 12/24 hour time */
 bool clock_is_24h_style(void);
@@ -75,62 +96,19 @@ void handle_timechanges(struct tm *tick_time, TimeUnits units_changed) {
   }
 }
 
-static void in_recv_handler(DictionaryIterator *iterator, void *context)
+static void in_recv_handler(const uint32_t key, const Tuple* new_tuple, const Tuple* old_tupble, void *context)
 {
-  //Get Tuple
-  Tuple *t = dict_read_first(iterator);
-  Tuple *t2 = dict_read_next(iterator);
-  Tuple *t3 = dict_read_next(iterator);
-  if(t)
-  {
-    switch(t->key)
-    {
-    case KEY_ZERO:
-      //It's the KEY_ZERO key
-      if(strcmp(t->value->cstring, "on") == 0)
-      {
-        persist_write_bool(KEY_ZERO, true);
-      }
-      else if(strcmp(t->value->cstring, "off") == 0)
-      {
-        persist_write_bool(KEY_ZERO, false);
-      }
+  switch(key){
+    case ZERO_KEY:
+      settings.showZero = new_tuple->value->uint8;
       break;
-    }
+    case BATTERY_BAR_KEY:
+      settings.batteryBar = new_tuple->value->uint8;
+      break;
+    case BLUETOOTH_WARNING_KEY:
+      settings.bluetoothWarning = new_tuple->value->uint8;
+      break;
   }
-  
-  if(t2)
-  {
-    switch(t2->key)
-    {
-      case KEY_BATTERY:
-        if(strcmp(t2->value->cstring, "on") == 0)
-        {
-          persist_write_bool(KEY_BATTERY, true);
-        }
-        else if(strcmp(t2->value->cstring, "off") == 0)
-        {
-          persist_write_bool(KEY_BATTERY, false);
-        }
-        break;
-    }
-  }
-  if(t3)
-  {
-    switch(t3->key)
-    {
-      case KEY_BLUETOOTH:
-        if(strcmp(t3->value->cstring, "on") == 0)
-        {
-          persist_write_bool(KEY_BLUETOOTH, true);
-        }
-        else if(strcmp(t3->value->cstring, "off") == 0)
-        {
-          persist_write_bool(KEY_BLUETOOTH, false);
-        }
-        break;
-    }
-  } 
 }
 
 /* Initializes the watchface */
@@ -140,11 +118,11 @@ void handle_init(void) {
   
   app_message_register_inbox_received((AppMessageInboxReceived) in_recv_handler);
   app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
-  
+  /*
   bool user_zero = persist_read_bool(KEY_ZERO);
   bool user_battery = persist_read_bool(KEY_BATTERY);
   bool user_bluetooth = persist_read_bool(KEY_BLUETOOTH);
-  
+  */
   /* Sets the custom fonts as resources. */
   GFont abadi_62 = 
     fonts_load_custom_font(resource_get_handle(RESOURCE_ID_ARIAL_NARROW_BOLD_69));
@@ -215,12 +193,12 @@ void handle_init(void) {
   layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bt_black_image_layer));
   */
   
-  if(user_bluetooth == true){
+  if(settings.bluetoothWarning == 1){
   update_bluetooth_state(bluetooth_connection_service_peek());
   bluetooth_connection_service_subscribe(update_bluetooth_state);
   }
   
-  if(user_battery == true){
+  if(settings.batteryBar == 1){
   update_battery_state(battery_state_service_peek()); 
   battery_state_service_subscribe(update_battery_state);
   }

@@ -1,5 +1,8 @@
-Pebble.addEventListener("ready",
-  function(e) {
+var mConfig = {};
+
+Pebble.addEventListener("ready", function(e) {
+    loadLocalData();
+    returnConfigToPebble();
     console.log("PebbleKit JS ready!");
   }
 );
@@ -7,10 +10,11 @@ Pebble.addEventListener("ready",
 Pebble.addEventListener("showConfiguration",
   function(e) {
     //Load the remote config page
-    Pebble.openURL("https://dl.dropboxusercontent.com/u/74351928/pebble/configuration.html");
+    Pebble.openURL(mConfig.configureUrl);
+    //Pebble.openURL("https://dl.dropboxusercontent.com/u/74351928/pebble/configuration.html");
   }
 );
-
+/*
 Pebble.addEventListener("webviewclosed",
   function(e) {
     //Get JSON dictionary
@@ -31,3 +35,47 @@ Pebble.addEventListener("webviewclosed",
     );
   }
 );
+*/
+
+Pebble.addEventListener("webviewClosed", 
+  function(e){
+    if(e.response){
+      var config = JSON.parse(e.response);
+      saveLocalData(config);
+      returnConfigToPebble();
+    }
+  }
+);
+
+function saveLocalData(config){
+  localStorage.setItem("zero_padding", parseInt(config.userzero));
+  localStorage.setItem("battery_bar", parseInt(config.userbattery));
+  localStorage.setItem("bluetooth_set", parseInt(config.userbluetooth));
+ 
+  loadLocalData();
+}
+
+function loadLocalData(){
+  mConfig.userzero = parseInt(localStorage.getItem("zero_padding"));
+  mConfig.userbattery = parseInt(localStorage.getItem("battery_bar"));
+  mConfig.userbluetooth = parseInt(localStorage.getItem("bluetooth_set"));
+  mConfig.configureUrl = "https://dl.dropboxusercontent.com/u/74351928/pebble/configuration.html";
+  
+  if(isNaN(mConfig.userzero))  {
+    mConfig.userzero = 1;
+  }
+  if(isNaN(mConfig.userbattery))  {
+    mConfig.userbattery = 1;
+  }
+  if(isNaN(mConfig.userbluetooth))  {
+    mConfig.userbluetooth = 1;
+  }
+}
+
+function returnConfigToPebble(){
+  Pebble.sendAppMessage({
+    "zero_padding":parseInt(mConfig.userzero),
+    "battery_bar":parseInt(mConfig.userbattery),
+    "bluetooth_set":parseInt(mConfig.userbluetooth)
+  });
+}
