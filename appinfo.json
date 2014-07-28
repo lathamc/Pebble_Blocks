@@ -1,13 +1,13 @@
 {
     "appKeys": {
-        "KEY_BATTERY": 0,
-        "KEY_BLUETOOTH": 0,
-        "KEY_ZERO": 0
+        "BATTERY_BAR_KEY": 1,
+        "BLUETOOTH_WARNING_KEY": 0,
+        "ZERO_KEY": 0
     },
     "capabilities": [
         "configurable"
     ],
-    "companyName": "latham.caseys@gmail.com",
+    "companyName": "Casey L",
     "longName": "Blocks",
     "projectType": "native",
     "resources": {
@@ -33,7 +33,7 @@
     "shortName": "Blocks",
     "uuid": "17e7a5f2-b5e2-4d93-9b23-5abb5232eefd",
     "versionCode": 1,
-    "versionLabel": "1.0",
+    "versionLabel": "2.0.1",
     "watchapp": {
         "watchface": true
     }

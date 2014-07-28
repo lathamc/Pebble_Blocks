@@ -48,6 +48,7 @@ Pebble.addEventListener("webviewClosed",
 );
 
 function saveLocalData(config){
+  console.log("Save Local data...");
   localStorage.setItem("zero_padding", parseInt(config.userzero));
   localStorage.setItem("battery_bar", parseInt(config.userbattery));
   localStorage.setItem("bluetooth_set", parseInt(config.userbluetooth));
@@ -56,6 +57,7 @@ function saveLocalData(config){
 }
 
 function loadLocalData(){
+  console.log("Load local data....");
   mConfig.userzero = parseInt(localStorage.getItem("zero_padding"));
   mConfig.userbattery = parseInt(localStorage.getItem("battery_bar"));
   mConfig.userbluetooth = parseInt(localStorage.getItem("bluetooth_set"));
